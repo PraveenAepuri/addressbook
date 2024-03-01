@@ -6,38 +6,54 @@ pipeline {
         maven "mymaven"
     }
 
+    environment{
+        BUILD_SERVER='ec2-user@172.31.26.89'
+    }
+
     stages {
         stage('Compile') {
-            agent {label 'linux_slave1'}
-            steps {              
-              script{
-                     echo "COMPILING"
-                     sh "mvn compile"
-              }             
-            }
-        }
-        stage('UnitTest') {
             agent any
-            steps {           
-              script{
-                   echo "RUNNING THE TC"
-                   sh "mvn test"
-                }              
-            } 
+            steps {
+                script{
+                    echo "Compiling the code"
+                    sh "mvn compile"
+                }
+                
+            }
+
+            
+        }
+        stage('UnitTest') { // running on slave1
+            //agent {label 'linux_slave'}
+            agent any
+            steps {
+                script{
+                    echo "RUNNING THE TC"
+                    sh "mvn test"
+                }
+                }
+            
             post{
                 always{
                     junit 'target/surefire-reports/*.xml'
                 }
             }
+            
         }
-        stage('Package') {
+        stage('Package') { // running on slave2 via ssh-agent
             agent any
-            steps {              
+            steps {
                 script{
-                   echo "Creating the package"
-                    sh "mvn package"
-                  }             
+                    sshagent(['aws_slave2']) {
+                    echo "Executing the code"
+                    sh "scp  -o StrictHostKeyChecking=no server-config.sh ${BUILD_SERVER}:/home/ec2-user"
+                    sh "ssh -o StrictHostKeyChecking=no ${BUILD_SERVER} 'bash server-config.sh'"
                 }
-            }            
+                }
+                
+            }
+
+            
         }
+    }
 }
