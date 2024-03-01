@@ -6,54 +6,47 @@ pipeline {
         maven "mymaven"
     }
 
-    environment{
-        BUILD_SERVER='ec2-user@172.31.0.234'
-    }
-
     stages {
         stage('Compile') {
-            agent any
-            steps {
-                script{
-                    echo "Compiling the code"
-                    sh "mvn compile"
-                }
-                
+            agent {label "linux_slave"}
+            steps {              
+              script{
+                     echo "COMPILING"
+                     sh "mvn compile"
+              }             
             }
+            
+        }
+        stage('Test') {
+            agent any
+            steps {           
+              script{
+                   echo "RUNNING THE TC"
+                   sh "mvn test"
+                }              
+             
+            }            
+        
+        post{
+            always{
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+        }
+        stage('Package') {
+            agent any
+            steps {              
 
-            
-        }
-        stage('UnitTest') { // running on slave1
-            //agent {label 'linux_slave'}
-            agent any
-            steps {
-                script{
-                    echo "RUNNING THE TC"
-                    sh "mvn test"
-                }
-                }
-            
-            post{
-                always{
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-            
-        }
-        stage('Package') { // running on slave2 via ssh-agent
-            agent any
-            steps {
                 script{
                     sshagent(['slave2']) {
-                    echo "Executing the code"
-                    sh "scp  -o StrictHostKeyChecking=no server-config.sh ${BUILD_SERVER}:/home/ec2-user"
-                    sh "ssh -o StrictHostKeyChecking=no ${BUILD_SERVER} 'bash server-config.sh'"
+                    sh "scp -o StrictHostKeyChecking=no server-script.sh ec2-user@172.31.43.237:/home/ec2-user"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@172.31.43.237 'bash server-script.sh'"
+                   echo "Creating the package"
+                   sh "mvn package"
+                }             
                 }
-                }
-                
-            }
-
-            
+            }            
         }
+
     }
 }
