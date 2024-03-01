@@ -15,13 +15,18 @@ pipeline {
               }             
             }
         }
-        stage('Test') {
+        stage('UnitTest') {
             steps {           
               script{
                    echo "RUNNING THE TC"
                    sh "mvn test"
                 }              
-            }            
+            } 
+            post{
+                always{
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
         }
         stage('Package') {
             steps {              
