@@ -11,6 +11,7 @@ pipeline {
             steps {              
               script{
                      echo "COMPILING"
+                     sh "mvn compile"
               }             
             }
         }
@@ -18,6 +19,7 @@ pipeline {
             steps {           
               script{
                    echo "RUNNING THE TC"
+                   sh "mvn test"
                 }              
             }            
         }
@@ -25,6 +27,7 @@ pipeline {
             steps {              
                 script{
                    echo "Creating the package"
+                    sh "mvn package"
                   }             
                 }
             }            
